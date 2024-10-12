@@ -54,6 +54,81 @@ void draw_sun(int x){
 	DrawCircleGradient(x*PIXEL+PIXEL/2, SIZE/2*PIXEL+PIXEL/2, SIZE/2*PIXEL, YELLOW, BLANK);
 }
 
+void mov_bac(struct bacteria * bac, int ptr, int living){
+	int max_living = SIZE*SIZE;
+	int pos_x = bac[ptr].pos[0] + (rand()%3-1);
+	int pos_y = bac[ptr].pos[1] + (rand()%3-1);
+
+	if(pos_x>=SIZE){ pos_x = 0;}
+	else if(pos_x<0){ pos_x = SIZE-1;}
+
+	if(pos_y>=SIZE){ pos_y = 0;}
+	else if(pos_y<0){ pos_y = SIZE-1;}
+
+	for(int i=0; i<max_living; i++){
+		if(living==0){ break;}
+		if(bac[i].is_alive){
+			living--;
+			if(bac[i].pos[0]!=pos_x && bac[i].pos[1]!=pos_y){
+				bac[ptr].pos[0] = pos_x;
+				bac[ptr].pos[1] = pos_y;
+				break;
+			}
+		}
+	}
+}
+
+void mov_dir(struct bacteria * bac, int ptr, int living){
+	int max_living = SIZE*SIZE;
+	int pos_x = bac[ptr].pos[0];
+	int pos_y = bac[ptr].pos[1];
+	int aim_x = bac[ptr].aim[0];
+	int aim_y = bac[ptr].aim[1];
+	
+	int mov_x;
+	int mov_y;
+
+	if(pow(aim_x-pos_x,2)<pow(aim_x+SIZE-pos_x,2)){ mov_x = 1;}
+	else if(pow(aim_x-pos_x,2)<pow(aim_x-SIZE-pos_x,2)){ mov_x = -1;}
+
+
+}
+
+void find_aim(struct bacteria * bac, int ptr, int living, int sun){
+	int max_living = SIZE*SIZE;
+	switch(bac[ptr].type){
+		case 0:
+			bac[ptr].aim[0]=sun;
+			bac[ptr].aim[1]=SIZE/2;
+			break;
+		case 1:
+			for(int i=0; i<max_living; i++){
+				if(living==0){ break;}
+				if(bac[i].type == 0){
+					bac[ptr].aim[0]=bac[i].pos[0];
+					bac[ptr].aim[1]=bac[i].pos[1];
+					break;
+				}
+			}
+			break;
+		case 2:
+			for(int i=0; i<max_living; i++){
+				if(living==0){ break;}
+				if(bac[i].type == 0){
+					bac[ptr].aim[0]=bac[i].pos[0];
+					bac[ptr].aim[1]=bac[i].pos[1];
+					break;
+				}
+			}
+			break;
+		default:
+			break;
+	
+	}
+
+}
+
+
 int main(){
 	int GodIsntAngry = 1;
 	int sun_pos = 10;
@@ -74,6 +149,7 @@ int main(){
 
 	while(GodIsntAngry){
 		if(WindowShouldClose()){GodIsntAngry=0; }
+		mov_bac(entities, 0, alive);
 		BeginDrawing();
 		ClearBackground(BLACK);
 		draw_em_all(entities, max_entity, alive);
