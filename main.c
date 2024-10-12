@@ -2,6 +2,8 @@
 #include <time.h>
 #include <stdio.h>
 #include <raylib.h>
+#include <math.h>
+
 
 #define SIZE 100
 #define PIXEL 10
@@ -87,10 +89,69 @@ void mov_dir(struct bacteria * bac, int ptr, int living){
 	
 	int mov_x;
 	int mov_y;
+	
+	/*
+	if(aim_x-pos_x<0){ mov_x=-1;}
+	else if(aim_x-pos_x>0){ mov_x=1;}
+	else { mov_x=0;}
+	
+	if(aim_y-pos_y<0){ mov_y=-1;}
+	else if(aim_y-pos_y>0){ mov_y=1;}
+	else { mov_y=0;}
+	*/
+	
+	if(abs(aim_x-pos_x)>abs(aim_x+SIZE-pos_x)){ 
+		if(aim_x+SIZE-pos_x<0){ mov_x=pos_x-1;}
+		else if(aim_x+SIZE-pos_x>0){ mov_x=pos_x+1;}
+		else { mov_x=pos_x;}
+	}
+	else if(abs(aim_x-pos_x)>abs(aim_x-SIZE-pos_x)){ 
+		if(aim_x-SIZE-pos_x<0){ mov_x=pos_x-1;}
+		else if(aim_x-SIZE-pos_x>0){ mov_x=pos_x+1;}
+		else { mov_x=pos_x;}
+	}
+	else { 
+		if(aim_x-pos_x<0){ mov_x=pos_x-1;}
+		else if(aim_x-pos_x>0){ mov_x=pos_x+1;}
+		else { mov_x=pos_x;}
+	}
+	
+	if(abs(aim_y-pos_y)>abs(aim_y+SIZE-pos_y)){ 
+		if(aim_y+SIZE-pos_y<0){ mov_y=pos_y-1;}
+		else if(aim_y+SIZE-pos_y>0){ mov_y=pos_y+1;}
+		else { mov_y=pos_y;}
+	}
+	else if(abs(aim_y-pos_y)>abs(aim_y-SIZE-pos_y)){ 
+		if(aim_y-SIZE-pos_y<0){ mov_y=pos_y-1;}
+		else if(aim_y-SIZE-pos_y>0){ mov_y=pos_y+1;}
+		else { mov_y=pos_y;}
+	}
+	else { 
+		if(aim_y-pos_y<0){ mov_y=pos_y-1;}
+		else if(aim_y-pos_y>0){ mov_y=pos_y+1;}
+		else { mov_y=pos_y;}
+	}
 
-	if(pow(aim_x-pos_x,2)<pow(aim_x+SIZE-pos_x,2)){ mov_x = 1;}
-	else if(pow(aim_x-pos_x,2)<pow(aim_x-SIZE-pos_x,2)){ mov_x = -1;}
+	if(mov_x>=SIZE){ mov_x = 0;}
+	else if(mov_x<0){ mov_x = SIZE-1;}
 
+	if(mov_y>=SIZE){ mov_y = 0;}
+	else if(mov_y<0){ mov_y = SIZE-1;}
+	
+	int wall = 0;
+	for(int i=0; i<max_living; i++){
+		if(living==0){ break;}
+		if(bac[i].is_alive){
+			living--;
+			if(bac[i].pos[0]==mov_x && bac[i].pos[1]==mov_y){
+				wall++;
+			}
+		}
+	}
+	if(wall==0){
+		bac[ptr].pos[0] = mov_x;
+		bac[ptr].pos[1] = mov_y;
+	}
 
 }
 
@@ -114,7 +175,7 @@ void find_aim(struct bacteria * bac, int ptr, int living, int sun){
 		case 2:
 			for(int i=0; i<max_living; i++){
 				if(living==0){ break;}
-				if(bac[i].type == 0){
+				if(bac[i].type == 1){
 					bac[ptr].aim[0]=bac[i].pos[0];
 					bac[ptr].aim[1]=bac[i].pos[1];
 					break;
@@ -146,10 +207,13 @@ int main(){
 
 	InitWindow(SIZE*PIXEL, SIZE*PIXEL, "Epstein Island Sim");
 	SetTargetFPS(10);
+	
+	
 
 	while(GodIsntAngry){
 		if(WindowShouldClose()){GodIsntAngry=0; }
-		mov_bac(entities, 0, alive);
+		find_aim(entities, 0, alive, sun_pos);
+		mov_dir(entities, 0, alive);
 		BeginDrawing();
 		ClearBackground(BLACK);
 		draw_em_all(entities, max_entity, alive);
