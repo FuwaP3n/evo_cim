@@ -10,6 +10,16 @@
 #define FIRST_FAM 10
 
 
+void show_grid(){
+	for(int x=0; x<SIZE; x++){
+		DrawRectangle(x*PIXEL-1, -1, 2, SIZE*PIXEL+1, DARKGRAY);
+	}
+	for(int y=0; y<SIZE; y++){
+		DrawRectangle(-1, y*PIXEL-1, SIZE*PIXEL+1, 2, DARKGRAY);
+	}
+}
+
+
 struct bacteria{
 	int dna[64];
 	int pos[2];
@@ -42,7 +52,7 @@ void init_bacteria(struct bacteria * bac, int max_alive){
 }
 
 void draw_em_all(struct bacteria * bac, int max_alive, int living){
-	int margin = 1;
+	int margin = 2;
 	for(int i=0; i<max_alive; i++){
 		if(living==0){break;}
 		if(bac[i].is_alive==1){
@@ -214,12 +224,14 @@ int main(){
 		if(WindowShouldClose()){GodIsntAngry=0; }
 		find_aim(entities, 0, alive, sun_pos);
 		mov_dir(entities, 0, alive);
+		
 		BeginDrawing();
 		ClearBackground(BLACK);
 		draw_em_all(entities, max_entity, alive);
 		draw_sun(sun_pos);
 		draw_sun(sun_pos-SIZE);
 		draw_sun(sun_pos+SIZE);
+		show_grid();
 		EndDrawing();
 		sun_pos++;
 		if(sun_pos>SIZE){sun_pos=sun_pos-SIZE;}
