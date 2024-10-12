@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <raylib.h>
 
-#define SIZE 20
+#define SIZE 100
 #define PIXEL 10
+#define FIRST_FAM 10
+
 
 struct bacteria{
 	int dna[64];
@@ -19,9 +21,7 @@ struct bacteria{
 void init_dna(int *dna, int length){
 	for(int i=0; i<length; i++){
 		dna[i] = rand()%4;
-		printf("%d", dna[i]);
 	}
-	printf("\n");
 }
 
 
@@ -39,11 +39,13 @@ void init_bacteria(struct bacteria * bac, int max_alive){
 	}
 }
 
-void draw_em_all(struct bacteria * bac, int max_alive){
+void draw_em_all(struct bacteria * bac, int max_alive, int living){
 	int margin = 1;
 	for(int i=0; i<max_alive; i++){
+		if(living==0){break;}
 		if(bac[i].is_alive==1){
 			DrawRectangle(bac[i].pos[0]*PIXEL+margin, bac[i].pos[1]*PIXEL+margin, PIXEL-margin*2, PIXEL-margin*2, RED);
+			living--;
 		}
 	}
 }
@@ -57,10 +59,13 @@ int main(){
 	int sun_pos = 10;
 
 	srand(time(NULL));
-	struct bacteria entities[64];
+	
+	int max_entity = SIZE*SIZE;
+	struct bacteria entities[max_entity];
+	
 	int alive = 0;
-	for(int i=0; i<4; i++){
-		init_bacteria(entities, 64);
+	for(int i=0; i<FIRST_FAM; i++){
+		init_bacteria(entities, max_entity);
 		alive++;
 	}
 
@@ -71,7 +76,7 @@ int main(){
 		if(WindowShouldClose()){GodIsntAngry=0; }
 		BeginDrawing();
 		ClearBackground(BLACK);
-		draw_em_all(entities, 64);
+		draw_em_all(entities, max_entity, alive);
 		draw_sun(sun_pos);
 		draw_sun(sun_pos-SIZE);
 		draw_sun(sun_pos+SIZE);
