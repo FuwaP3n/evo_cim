@@ -151,7 +151,7 @@ void mov_dir(struct bacteria * bac, int ptr, int living){
 	int wall = 0;
 	for(int i=0; i<max_living; i++){
 		if(living==0){ break;}
-		if(bac[i].is_alive){
+		if(bac[i].is_alive==1){
 			living--;
 			if(bac[i].pos[0]==mov_x && bac[i].pos[1]==mov_y){
 				wall++;
@@ -165,8 +165,11 @@ void mov_dir(struct bacteria * bac, int ptr, int living){
 
 }
 
+
+
 void find_aim(struct bacteria * bac, int ptr, int living, int sun){
 	int max_living = SIZE*SIZE;
+	int best[2] = {SIZE*10, SIZE*10};
 	switch(bac[ptr].type){
 		case 0:
 			bac[ptr].aim[0]=sun;
@@ -174,23 +177,35 @@ void find_aim(struct bacteria * bac, int ptr, int living, int sun){
 			break;
 		case 1:
 			for(int i=0; i<max_living; i++){
-				if(living==0){ break;}
-				if(bac[i].type == 0){
-					bac[ptr].aim[0]=bac[i].pos[0];
-					bac[ptr].aim[1]=bac[i].pos[1];
-					break;
+				if(bac[i].is_alive == 1){
+					if(living==0){ break;}
+					if(bac[i].type == 0){
+						if(pow(bac[i].pos[0]-bac[ptr].pos[0],2)+pow(bac[i].pos[1]-bac[ptr].pos[1],2)<pow(best[0],2)+pow(best[1],2)){
+							best[0]=bac[i].pos[0];
+							best[1]=bac[i].pos[1];
+						}
+					}
+					living--;
 				}
 			}
+			bac[ptr].aim[0] = best[0];
+			bac[ptr].aim[1] = best[1];
 			break;
 		case 2:
 			for(int i=0; i<max_living; i++){
-				if(living==0){ break;}
-				if(bac[i].type == 1){
-					bac[ptr].aim[0]=bac[i].pos[0];
-					bac[ptr].aim[1]=bac[i].pos[1];
-					break;
+				if(bac[i].is_alive == 1){
+					if(living==0){ break;}
+					if(bac[i].type == 1){
+						if(pow(bac[i].pos[0]-bac[ptr].pos[0],2)+pow(bac[i].pos[1]-bac[ptr].pos[1],2)<pow(best[0],2)+pow(best[1],2)){
+							best[0]=bac[i].pos[0];
+							best[1]=bac[i].pos[1];
+						}
+					}
+					living--;
 				}
 			}
+			bac[ptr].aim[0] = best[0];
+			bac[ptr].aim[1] = best[1];
 			break;
 		default:
 			break;
@@ -217,7 +232,7 @@ int main(){
 
 	InitWindow(SIZE*PIXEL, SIZE*PIXEL, "Epstein Island Sim");
 	SetTargetFPS(10);
-	
+	entities[0].type =2;
 	
 
 	while(GodIsntAngry){
