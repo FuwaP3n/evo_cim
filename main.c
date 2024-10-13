@@ -26,7 +26,8 @@ struct bacteria{
 	int aim[2];
 	int energy;
 	int type;
-	int is_alive;	
+	int is_alive;
+	int command;	
 };
 
 
@@ -43,9 +44,10 @@ void init_bacteria(struct bacteria * bac, int max_alive){
 			init_dna(bac[i].dna, 64);
 			bac[i].pos[0] = rand()%SIZE;
 			bac[i].pos[1] = rand()%SIZE;
-			bac[i].energy = 20;
+			bac[i].energy = 100;
 			bac[i].type = rand()%3;
 			bac[i].is_alive = 1;
+			bac[i].command = 0;
 			break;
 		}
 	}
@@ -214,6 +216,84 @@ void find_aim(struct bacteria * bac, int ptr, int living, int sun){
 
 }
 
+void consume(struct bacteria * bac, int ptr, int living, int sun){
+	int max_living = SIZE*SIZE;
+	
+	switch(bac[ptr].type){
+		case 0:
+			int k = 1;
+			int max=10;
+			bac[ptr].energy = bac[ptr].energy + (sqrt(pow(sun-bac[ptr].pos[0],2)-pow(SIZE/2-bac[ptr].pos[1],2))/max);
+			break;
+		case 1:
+			for(int i=0; i<max_living; i++){
+				if(living==0){ break;}
+				if(bac[i].is_alive==1){
+					living--;
+					if(bac[i].type!=0){ continue;}
+					if(pow(bac[i].pos[0]-bac[ptr].pos[0], 2)+pow(bac[i].pos[1]-bac[ptr].pos[1], 2)<2){
+					bac[i].is_alive=0;
+					bac[ptr].energy = bac[ptr].energy+bac[i].energy;
+					break;
+					}
+				}
+			}
+			break;
+		case 2:
+			for(int i=0; i<max_living; i++){
+				if(living==0){ break;}
+				if(bac[i].is_alive==1){
+					living--;
+					if(bac[i].type!=1){ continue;}
+					if(pow(bac[i].pos[0]-bac[ptr].pos[0], 2)+pow(bac[i].pos[1]-bac[ptr].pos[1], 2)<2){
+					bac[i].is_alive=0;
+					bac[ptr].energy = bac[ptr].energy+bac[i].energy;
+					bac[i].energy = 0;
+					break;
+					}
+				}
+			}
+			break;
+	}
+}
+
+void turn(struct bacteria * bac, int * living, int sun){
+	int max_living = SIZE*SIZE;
+	int still = *living;
+	for(int pointer=0; pointer<max_living; pointer++){
+		if(still==0){break;}
+		if(bac[pointer].is_alive==1){
+			still--;
+			bac[pointer].energy--;
+			if(bac[pointer].energy<1){
+				bac[pointer].is_alive=0;
+				*living--;
+				continue;
+			}
+			switch(bac[pointer].dna[bac[pointer].command]){
+				case 0:
+					break;
+				case 1:
+					consume(bac, pointer, *living, sun);
+					break;
+				case 2:
+					if(bac[pointer].aim[0]){
+						mov_dir(bac, pointer, *living);
+					}
+					else { mov_bac(bac, pointer, *living); }
+					break;
+				case 3:
+					find_aim(bac, pointer, *living, sun);
+					break;
+				default:
+					break;
+			}
+			bac[pointer].command++;
+			if(bac[pointer].command>63){ bac[pointer].command = 0; }
+		}
+	}
+}
+
 
 int main(){
 	int GodIsntAngry = 1;
@@ -237,8 +317,7 @@ int main(){
 
 	while(GodIsntAngry){
 		if(WindowShouldClose()){GodIsntAngry=0; }
-		find_aim(entities, 0, alive, sun_pos);
-		mov_dir(entities, 0, alive);
+		turn(entities, &alive, sun_pos);	
 		
 		BeginDrawing();
 		ClearBackground(BLACK);
