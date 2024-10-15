@@ -7,7 +7,9 @@
 
 #define SIZE 100
 #define PIXEL 10
-#define FIRST_FAM 10
+#define FIRST_FAM 1
+#define DNA_LENGTH 64
+#define MUTATION 70
 
 
 void show_grid(){
@@ -41,11 +43,34 @@ void init_dna(int *dna, int length){
 void init_bacteria(struct bacteria * bac, int max_alive){
 	for(int i=0; i<max_alive; i++){
 		if(bac[i].is_alive != 1){
-			init_dna(bac[i].dna, 64);
+			init_dna(bac[i].dna, DNA_LENGTH);
 			bac[i].pos[0] = rand()%SIZE;
 			bac[i].pos[1] = rand()%SIZE;
 			bac[i].energy = 100;
 			bac[i].type = rand()%3;
+			bac[i].is_alive = 1;
+			bac[i].command = 0;
+			break;
+		}
+	}
+}
+
+void gen_new(struct bacteria * bac, int ptr, int * pos){
+	int max_alive = SIZE*SIZE;
+	for(int i=0; i<max_alive; i++){
+		if(bac[i].is_alive !=1){
+			for(int j=0; j<DNA_LENGTH; j++){
+				if(rand()%100>MUTATION){
+					bac[i].dna[j] = rand()%4;
+				} else { bac[i].dna[j] = bac[ptr].dna[j]; }
+			}
+			bac[i].pos[0] = pos[0];
+			bac[i].pos[1] = pos[1];
+			bac[i].energy = bac[ptr].energy/2;
+			bac[ptr].energy = bac[i].energy;
+			if(rand()%100>95){
+				bac[i].type = rand()%3;
+			} else { bac[i].type = bac[ptr].type; }
 			bac[i].is_alive = 1;
 			bac[i].command = 0;
 			break;
@@ -167,7 +192,9 @@ void mov_dir(struct bacteria * bac, int ptr, int living){
 
 }
 
-
+float diff(int * pos_1, int * pos_2){
+	return sqrt(pow(pos_2[0]-pos_1[0], 2)+pow(pos_2[1]-pos_1[1], 2));
+}
 
 void find_aim(struct bacteria * bac, int ptr, int living, int sun){
 	int max_living = SIZE*SIZE;
@@ -257,7 +284,40 @@ void consume(struct bacteria * bac, int ptr, int living, int sun){
 	}
 }
 
-void turn(struct bacteria * bac, int * living, int sun){
+int dividing(struct bacteria * bac, int ptr, int * living){
+	int max_living = SIZE*SIZE;
+	if(*living+1<max_living){
+		if(bac[ptr].energy > 1){
+			for(int y=-1; y<2; y++){
+				for(int x=-1; x<2; x++){
+					if(x==0&&y==0){ continue; }
+					int found = 0;
+					int currently = *living;
+					for(int i=0; i<max_living; i++){
+						if(bac[i].is_alive == 1){
+							currently--;
+							if((bac[i].pos[0]==bac[ptr].pos[0]+x)&&(bac[i].pos[1]==bac[ptr].pos[1]+y)){
+							
+								printf("found someone");
+								found = 1;
+								break;
+							}
+						}
+					}
+					if(found==0){
+						int born_pos[2] = {bac[ptr].pos[0]+x, bac[ptr].pos[1]+y};
+						gen_new(bac, ptr, born_pos);
+						*living++;
+						return 0;			
+					}
+				}
+			}
+		}	
+	}
+	return 0;
+}
+
+void turn_v1(struct bacteria * bac, int * living, int sun){
 	int max_living = SIZE*SIZE;
 	int still = *living;
 	for(int pointer=0; pointer<max_living; pointer++){
@@ -272,6 +332,7 @@ void turn(struct bacteria * bac, int * living, int sun){
 			}
 			switch(bac[pointer].dna[bac[pointer].command]){
 				case 0:
+					dividing(bac, pointer, living);
 					break;
 				case 1:
 					consume(bac, pointer, *living, sun);
@@ -289,7 +350,7 @@ void turn(struct bacteria * bac, int * living, int sun){
 					break;
 			}
 			bac[pointer].command++;
-			if(bac[pointer].command>63){ bac[pointer].command = 0; }
+			if(bac[pointer].command>DNA_LENGTH-1){ bac[pointer].command = 0; }
 		}
 	}
 }
@@ -300,7 +361,6 @@ int main(){
 	int sun_pos = 10;
 
 	srand(time(NULL));
-	
 	int max_entity = SIZE*SIZE;
 	struct bacteria entities[max_entity];
 	
@@ -309,15 +369,18 @@ int main(){
 		init_bacteria(entities, max_entity);
 		alive++;
 	}
-
+	
+	//printf("%f", diff(entities[0].pos, entities[1].pos));
+	dividing(entities, 0, &alive);
 	InitWindow(SIZE*PIXEL, SIZE*PIXEL, "Epstein Island Sim");
 	SetTargetFPS(10);
-	entities[0].type =2;
+	
+
 	
 
 	while(GodIsntAngry){
 		if(WindowShouldClose()){GodIsntAngry=0; }
-		turn(entities, &alive, sun_pos);	
+		turn_v1(entities, &alive, sun_pos);	
 		
 		BeginDrawing();
 		ClearBackground(BLACK);
