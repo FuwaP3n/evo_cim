@@ -7,6 +7,7 @@
 #define SIZE 100
 #define PIXEL 10
 #define DNA_LENGTH 64
+#define MUTATION 50
 
 #define ST_ENERGY 50
 
@@ -89,7 +90,11 @@ void side(int action, int *pos){
 }
 
 
-void mov(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
+int mov(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
+	if(bac[x][y].type==0){
+		return 0;
+	}
+	
 	int to[2];
 	side(act, to);
 	
@@ -99,11 +104,15 @@ void mov(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 	bac[x][y].was = 1;
 	
 	if(x+to[0]<0){ to[0] = SIZE-1; }
-	else if(x+to[0]==SIZE){ to[0] = -SIZE+1;}
+	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
 
 	if(x+to[0]<0){ to[0] = SIZE-1; }
-	else if(x+to[0]==SIZE){ to[0] = -SIZE+1;}
-		
+	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+	
+	if(bac[x][y].type==1&&bac[x+to[0]][y+to[1]].type==0&&bac[x+to[0]][y+to[1]].is_alive==1){
+		bac[x][y].energy = bac[x][y].energy+bac[x+to[0]][y+to[1]].energy;
+		bac[x+to[0]][y+to[1]].is_alive = 0;
+	}
 	if(bac[x+to[0]][y+to[1]].is_alive==0){
 		bac[x+to[0]][y+to[1]] = bac[x][y];
 		bac[x][y].is_alive = 0;	
@@ -112,10 +121,92 @@ void mov(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 }
 
 void divide(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
+	int add_o = 0;
+	int add_p = 0;
+	int to[2];
+	int skip = 0;
+	side(act, to);
+	if(bac[to[0]][to[1]].is_alive==0){
+		skip++;
+	}
+	for(int o=-1; o<2; o++){
+		for(int p=-1; p<2; p++){
+			if(x+o<0){add_o=SIZE;}
+			else if(x+o>=SIZE){ add_o=-SIZE; }
+			if(y+p<0){add_p=SIZE;}
+			else if(y+p>=SIZE){ add_p=-SIZE; }
+			
+			if(bac[x+o+add_o][y+p+add_p].is_alive==0){
+				
+				if(skip==1){
+					o = x+to[0]; 
+					p = x+to[0];
+					if(o<0){ o=o+SIZE;}
+					else if(o>=SIZE){o=o-SIZE;}
+					if(p<0){ p=p+SIZE;}
+					else if(p>=SIZE){p=p-SIZE;}
+				} else {
+					o = add_o+x+o;
+					p = p+add_p+y;
+				}
+				bac[o][p].is_alive = 1;
+				bac[o][p].energy = bac[x][y].energy/2;
+				bac[x][y].energy = bac[o][p].energy;
+				bac[o][p].was = 1;
+				bac[o][p].command = 0;
+				
+				//Change type chance
+				if(rand()%100>90){
+					bac[o][p].type = rand()%3;
+				} else {
+					bac[o][p].type = bac[x][y].type;
+				}
+				//Chance of mutation
+				for(int i=0; i<DNA_LENGTH; i++){
+					if(rand()%100>99-MUTATION){
+						bac[o][p].dna[i]=rand()%32;
+					} else { bac[o][p].dna[i] = bac[x][y].dna[i]; }
+				}
+				o = 99;
+				p = 99;
+			}
+		}
+	}
 }
 
-void grab(struct bacteria ba[SIZE][SIZE], int x, int y, int act){
+void grab(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
+	int to[2];
+	side(act, to);
+
+	if(x+to[0]<0){ to[0] = SIZE-1; }
+	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+
+	if(x+to[0]<0){ to[0] = SIZE-1; }
+	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+
+
+	switch(bac[x][y].type){
+		case 0:
+			bac[x][y].energy=bac[x][y].energy+5;
+			break;	
+		case 1:
+			if(bac[x+to[0]][y+to[1]].type==0&&bac[x+to[0]][y+to[1]].is_alive==1){
+				bac[x][y].energy = bac[x+to[0]][y+to[1]].energy + bac[x][y].energy;
+				bac[x+to[0]][y+to[1]].is_alive = 0;
+			}
+			break;
+		case 2:
+			if(bac[x+to[0]][y+to[1]].type==1&&bac[x+to[0]][y+to[1]].is_alive==1){
+				bac[x][y].energy = bac[x+to[0]][y+to[1]].energy + bac[x][y].energy;
+				bac[x+to[0]][y+to[1]].is_alive = 0;
+			}
+			break;
+		default:
+			break;
+	}
+
 }
+
 
 void turn(struct bacteria bac[SIZE][SIZE], int x, int y, int sun){
 	int action = bac[x][y].dna[bac[x][y].command];
@@ -129,8 +220,7 @@ void turn(struct bacteria bac[SIZE][SIZE], int x, int y, int sun){
 			bac[x][y].was = 1;
 		}
 	} else if(action<16){
-		if(bac[x][y].energy>1){ divide(bac, x, y, action-8);
-	       	bac[x][y].energy--;}
+		if(bac[x][y].energy>1){ divide(bac, x, y, action-8);}
 		else { bac[x][y].energy--; }
 		bac[x][y].command++;
 		bac[x][y].was = 1;
@@ -160,13 +250,13 @@ int main(){
 
 
 	InitWindow(SIZE*PIXEL, SIZE*PIXEL, "Epsteins Island");
-	SetTargetFPS(30);
+	SetTargetFPS(10);
 	//EnableEventWaiting();
 	while(1){
 		if(WindowShouldClose()) {break;}
 		BeginDrawing();
 		ClearBackground(BLACK);
-		show_grid();
+		//show_grid();
 		bac_draw(map);
 		EndDrawing();
 		for(int i=0; i<2; i++){
@@ -181,6 +271,9 @@ int main(){
 					} else {
 						if(map[x][y].energy<1){
 							map[x][y].is_alive = 0;
+						}
+						if(map[x][y].energy>200){
+							map[x][y].energy = 199;
 						}
 						map[x][y].was=0;
 					}
