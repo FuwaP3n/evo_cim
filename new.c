@@ -7,7 +7,9 @@
 #define SIZE 100
 #define PIXEL 10
 #define DNA_LENGTH 64
-#define MUTATION 50
+#define MUTATION 75
+#define WALL 1
+
 
 #define ST_ENERGY 50
 
@@ -18,6 +20,7 @@ struct bacteria{
 	int command;
 	int type;
 	int was;
+	int age;
 };
 
 void show_grid(){
@@ -65,6 +68,7 @@ void init_bac(struct bacteria bac[SIZE][SIZE]){
 			bac[x][y].command = 0;
 			bac[x][y].type = rand()%3;
 			bac[x][y].was = 0;
+			bac[x][y].age = 0;
 			for(int i=0; i<DNA_LENGTH; i++){
 				bac[x][y].dna[i] = rand()%32;
 			}
@@ -102,13 +106,18 @@ int mov(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 	bac[x][y].energy--;
 	if(bac[x][y].command >= DNA_LENGTH){ bac[x][y].command = bac[x][y].command - DNA_LENGTH; }
 	bac[x][y].was = 1;
-	
-	if(x+to[0]<0){ to[0] = SIZE-1; }
-	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+	if(WALL==0){
+		if(x+to[0]<0){ to[0] = SIZE-1; }
+		else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
 
-	if(x+to[0]<0){ to[0] = SIZE-1; }
-	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
-	
+		if(x+to[0]<0){ to[0] = SIZE-1; }
+		else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+	} else {
+		if(x+to[0]<0||x+to[0]>=SIZE){ return 0;}
+		if(y+to[1]<0||y+to[1]>=SIZE){ return 0;}
+	}
+
+
 	if(bac[x][y].type==1&&bac[x+to[0]][y+to[1]].type==0&&bac[x+to[0]][y+to[1]].is_alive==1){
 		bac[x][y].energy = bac[x][y].energy+bac[x+to[0]][y+to[1]].energy;
 		bac[x+to[0]][y+to[1]].is_alive = 0;
@@ -131,11 +140,19 @@ void divide(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 	}
 	for(int o=-1; o<2; o++){
 		for(int p=-1; p<2; p++){
-			if(x+o<0){add_o=SIZE;}
-			else if(x+o>=SIZE){ add_o=-SIZE; }
-			if(y+p<0){add_p=SIZE;}
-			else if(y+p>=SIZE){ add_p=-SIZE; }
+			if(WALL==0){
+				if(x+o<0){add_o=SIZE-1;}
+				else if(x+o>=SIZE){ add_o=-SIZE+1; }
+				if(y+p<0){add_p=SIZE-1;}
+				else if(y+p>=SIZE){ add_p=-SIZE+1; }
+			} else {
+				if(x+o<0){continue;}
+				else if(x+o>=SIZE){ continue; }
+				if(y+p<0){continue;}
+				else if(y+p>=SIZE){ continue; }
 			
+			}
+
 			if(bac[x+o+add_o][y+p+add_p].is_alive==0){
 				
 				if(skip==1){
@@ -154,10 +171,12 @@ void divide(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 				bac[x][y].energy = bac[o][p].energy;
 				bac[o][p].was = 1;
 				bac[o][p].command = 0;
+				bac[o][p].age = 0;
 				
 				//Change type chance
-				if(rand()%100>90){
-					bac[o][p].type = rand()%3;
+				if(rand()%100>95){
+					bac[o][p].type = bac[x][y].type+1;
+					if(bac[o][p].type>2){ bac[o][p].type=2;}
 				} else {
 					bac[o][p].type = bac[x][y].type;
 				}
@@ -174,16 +193,21 @@ void divide(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 	}
 }
 
-void grab(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
+int grab(struct bacteria bac[SIZE][SIZE], int x, int y, int act){
 	int to[2];
 	side(act, to);
+	if(WALL==0){
+		if(x+to[0]<0){ to[0] = SIZE-1; }
+		else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
 
-	if(x+to[0]<0){ to[0] = SIZE-1; }
-	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+		if(x+to[0]<0){ to[0] = SIZE-1; }
+		else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
+	} else {
+		if(x+to[0]<0||x+to[0]>=SIZE){ return 0;}
+		if(y+to[1]<0||y+to[1]>=SIZE){ return 0;}
+	}
 
-	if(x+to[0]<0){ to[0] = SIZE-1; }
-	else if(x+to[0]>=SIZE){ to[0] = -SIZE+1;}
-
+	
 
 	switch(bac[x][y].type){
 		case 0:
@@ -243,9 +267,13 @@ void turn(struct bacteria bac[SIZE][SIZE], int x, int y, int sun){
 int main(){
 	//initialize
 	srand(time(NULL));
+	int besties = 10;
+	int alive = 0;
+	struct bacteria best[besties];
 	struct bacteria map[SIZE][SIZE];
 	for(int i=0; i<10; i++){
 		init_bac(map);
+		alive++;
 	}
 
 
@@ -259,12 +287,36 @@ int main(){
 		//show_grid();
 		bac_draw(map);
 		EndDrawing();
+		if(alive == 0){
+			FILE * data = fopen("data", "w");
+			fwrite(best, sizeof(struct bacteria), besties, data);
+			fclose(data);
+			break;
+		}
+		alive = 0;
 		for(int i=0; i<2; i++){
 			for(int x=0; x<SIZE; x++){
 				for(int y=0; y<SIZE; y++){
 					if(i==0){
 						if(map[x][y].is_alive==1){
 							if(map[x][y].was==0){
+								struct bacteria best_buf[besties];
+								
+								for(int j=0; j<besties; j++){
+									best_buf[j] = best[j];
+								}
+								int ch = 0;
+								for(int j=0; j<besties; j++){
+									if(ch==0){
+										if(best_buf[j].age<map[x][y].age){
+											best[j] = map[x][y];
+											ch++;
+										}
+									} else {
+										best[j] = best_buf[j-1];
+									}
+								}
+								map[x][y].age++;
 								turn(map, x, y, 0);
 							}
 						}	
@@ -273,7 +325,10 @@ int main(){
 							map[x][y].is_alive = 0;
 						}
 						if(map[x][y].energy>200){
-							map[x][y].energy = 199;
+							map[x][y].energy = 200;
+						}
+						if(map[x][y].is_alive==1){
+							alive++;
 						}
 						map[x][y].was=0;
 					}
